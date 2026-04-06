@@ -43,14 +43,16 @@ class ProcesarComprobantesUseCase:
         self.reader_excel = reader_excel
         self.writers = writers
 
-    def execute(self, origen_csv_path: Union[str, List[str]], origen_excel_path: str, destino_paths: Dict[IRetencionWriter, str]) -> None:
+    def execute(self, origen_csv_path: Union[str, List[str]], origen_excel_path: str, destino_paths: Dict[IRetencionWriter, str]) -> List['RetencionSicore']:
         raw_csv_data = self.reader_csv.read(origen_csv_path)
         raw_excel_data = self.reader_excel.read(origen_excel_path)
-        
+
         retenciones = self._cross_reference_data(raw_csv_data, raw_excel_data)
-        
+
         for writer, path in destino_paths.items():
             writer.write(retenciones, path)
+
+        return retenciones
 
     def _get_val(self, r, col):
         if col not in r: return 0.0

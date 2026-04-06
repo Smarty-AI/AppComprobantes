@@ -116,44 +116,57 @@ def main():
         st.write(f"Regímenes activos en memoria: {len(regimen_actual)}")
 
         if uploaded_ddjj is not None and uploaded_csv:
-            if st.button("Procesar Archivos Ahora 🚀"):
+            # Validar que no se suban comprobantes Emitidos
+            archivos_emitidos = [f.name for f in uploaded_csv if "emitido" in f.name.lower()]
+            if archivos_emitidos:
+                st.error(f"El archivo '{archivos_emitidos[0]}' parece ser de Comprobantes **Emitidos**. Este proceso requiere archivos de Comprobantes **Recibidos**.")
+
+            if not archivos_emitidos and st.button("Procesar Archivos Ahora 🚀"):
                 with st.spinner("Validando formato y procesando cruce de datos..."):
                     try:
                         ext_ddjj = uploaded_ddjj.name.split('.')[-1].lower()
-                        
+
                         with tempfile.NamedTemporaryFile(delete=False, suffix=f".{ext_ddjj}") as tmp_ddjj:
                             tmp_ddjj.write(uploaded_ddjj.getvalue())
                             temp_path_ddjj = tmp_ddjj.name
-                            
+
                         temp_csv_paths = []
                         for f_csv in uploaded_csv:
                             ext_csv = f_csv.name.split('.')[-1].lower()
                             with tempfile.NamedTemporaryFile(delete=False, suffix=f".{ext_csv}") as tmp_csv:
                                 tmp_csv.write(f_csv.getvalue())
                                 temp_csv_paths.append(tmp_csv.name)
-                            
+
                         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                        
+
                         # Configuramos las salidas
                         temp_path_out_txt = temp_path_ddjj + f"_SIAP_{timestamp}.txt"
                         temp_path_out_xls = temp_path_ddjj + f"_Reporte_{timestamp}.xlsx"
-                        
+
                         # Inyectamos dependencias
                         reader_excel = PandasExcelReader()
                         reader_csv = PandasCsvReader()
-                            
+
                         writer_txt = SicoreTxtWriter()
                         writer_xls = PandasExcelWriter()
-                        
+
                         use_case = ProcesarComprobantesUseCase(reader_csv, reader_excel, [writer_txt, writer_xls])
-                        
+
                         # Ejecutamos
-                        use_case.execute(temp_csv_paths, temp_path_ddjj, {
+                        retenciones = use_case.execute(temp_csv_paths, temp_path_ddjj, {
                             writer_txt: temp_path_out_txt,
                             writer_xls: temp_path_out_xls
                         })
-                        
-                        st.success("¡Proceso finalizado exitosamente! ✨")
+
+                        total = len(retenciones)
+                        sin_match = sum(1 for r in retenciones if not r.is_matched)
+                        con_match = total - sin_match
+
+                        if sin_match == 0:
+                            st.success(f"¡Proceso finalizado! {con_match} retenciones procesadas correctamente.")
+                        else:
+                            st.success(f"¡Proceso finalizado! {con_match} retenciones procesadas correctamente.")
+                            st.warning(f"{sin_match} retención(es) no encontrada(s) en el CSV de AFIP — revisalas en la hoja 'Sin Match' del Excel descargado.")
                         
                         # Habilitamos descarga en ZIP
                         zip_buffer = io.BytesIO()
