@@ -4,6 +4,29 @@ from domain.interfaces import IComprobanteReader, IRetencionWriter
 from domain.models import RetencionSicore
 import pandas as pd
 import re
+import math
+
+
+def safe_decimal(val, default="0.0") -> Decimal:
+    """
+    Convierte cualquier valor a Decimal de forma robusta.
+    Maneja: None, float NaN, strings en formato AR ("1.234,56"), strings vacíos y valores inválidos.
+    """
+    if val is None:
+        return Decimal(default)
+    if isinstance(val, float) and math.isnan(val):
+        return Decimal(default)
+    if isinstance(val, Decimal):
+        return Decimal(default) if val.is_nan() else val
+    try:
+        return Decimal(str(val))
+    except Exception:
+        try:
+            # Intento con formato AR: "1.234,56" -> "1234.56"
+            cleaned = str(val).strip().replace('.', '').replace(',', '.')
+            return Decimal(cleaned)
+        except Exception:
+            return Decimal(default)
 
 class ProcesarComprobantesUseCase:
     """
@@ -124,27 +147,27 @@ class ProcesarComprobantesUseCase:
                 # Prioridad 2: Match por Importe Total (si no hubo match CUIT)
                 if not csv_row:
                     for cand in candidates:
-                        cand_total = Decimal(str(cand.get('imp_total') or 0.0))
-                        if abs(cand_total - Decimal(str(total_factura))) < 1.0:
+                        cand_total = safe_decimal(cand.get('imp_total'))
+                        if abs(cand_total - safe_decimal(total_factura)) < 1.0:
                             csv_row = cand
                             break
                 # Fallback: El primero
                 if not csv_row:
                     csv_row = candidates[0]
-            
+
             row_matched = csv_row is not None
-                        
-            base_imponible_pre = Decimal(str(total_factura))
-            valor_comprobante = Decimal(str(total_factura))
-            
+
+            base_imponible_pre = safe_decimal(total_factura)
+            valor_comprobante = safe_decimal(total_factura)
+
             if csv_row:
-                tc = Decimal(str(csv_row.get('tipo_cambio') or 1.0))
+                tc = safe_decimal(csv_row.get('tipo_cambio'), default="1.0")
                 if tc == 0: tc = Decimal("1.0")
-                valor_comprobante = Decimal(str(csv_row.get('imp_total') or 0.0)) * tc
-                
-                neto_gravado = Decimal(str(csv_row.get('imp_neto_gravado') or 0.0))
-                neto_no_gravado = Decimal(str(csv_row.get('imp_neto_no_gravado') or 0.0))
-                op_exentas = Decimal(str(csv_row.get('imp_op_exentas') or 0.0))
+                valor_comprobante = safe_decimal(csv_row.get('imp_total')) * tc
+
+                neto_gravado = safe_decimal(csv_row.get('imp_neto_gravado'))
+                neto_no_gravado = safe_decimal(csv_row.get('imp_neto_no_gravado'))
+                op_exentas = safe_decimal(csv_row.get('imp_op_exentas'))
                 base_imponible_pre = (neto_gravado + neto_no_gravado + op_exentas) * tc
 
                 if base_imponible_pre == 0 and valor_comprobante != 0:
@@ -174,12 +197,12 @@ class ProcesarComprobantesUseCase:
             
             if cert_data:
                 cert_nro, regimen = cert_data["nro"], cert_data["regimen"]
-                min_no_imp = Decimal(str(cert_data.get("min_no_imp", 0.0)))
+                min_no_imp = safe_decimal(cert_data.get("min_no_imp", 0.0))
                 total_cert = cert_total_amounts.get(cert_nro, Decimal("0.00"))
-                
+
                 # VALIDACION DE PRECISION: Pago Acumulado (Total Monto Imponible)
                 # La suma de los netos (bi_pre) debe coincidir con el total_base del certificado
-                expected_base = Decimal(str(cert_data.get("total_base", 0.0)))
+                expected_base = safe_decimal(cert_data.get("total_base", 0.0))
                 actual_base = cert_total_bi_pre.get(cert_nro, Decimal("0.00"))
                 
                 if expected_base > 0:
@@ -201,8 +224,9 @@ class ProcesarComprobantesUseCase:
                 ref_cg = str(item['row'].get('Referencia CG', item['row'].get('referencia_cg', '')))
                 if ref_cg.isdigit(): cert_nro = ref_cg
             
-            base_calculo = max(Decimal("0.00"), item['bi_pre'] - mni_prorate)
-            ret_amount = Decimal(str(-item['monto_excel']))
+            bi_pre_safe = safe_decimal(item['bi_pre'])
+            base_calculo = max(Decimal("0.00"), bi_pre_safe - mni_prorate)
+            ret_amount = safe_decimal(-item['monto_excel'])
             doc_tipo_str = "01" if "FCA" in item['full_text'] else "06"
             
             situacion = None

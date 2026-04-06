@@ -16,8 +16,8 @@ def run_test():
     
     # Rutas de archivos de prueba
     tests_dir = os.path.join(os.getcwd(), "tests")
-    excel_path = os.path.join(tests_dir, "KS Ret. Ganancias 1º Febrero.xlsx")
-    csv_zip_path = os.path.join(tests_dir, "comprobantes_consulta_csv_recibidos_162924870_30609331190_20260303-1150.zip")
+    excel_path = os.path.join(tests_dir, "KS Ret. Ganancias 1º Marzo.xlsx")
+    csv_zip_path = os.path.join(tests_dir, "comprobantes_consulta_csv_recibidos_170619250_30609331190_20260406-1418.zip")
     
     if not os.path.exists(excel_path):
         print(f"Error: No se encuentra el archivo Excel en {excel_path}")

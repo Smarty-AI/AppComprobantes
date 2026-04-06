@@ -174,7 +174,9 @@ def main():
                             os.unlink(p)
                         
                     except Exception as e:
+                        import traceback
                         st.error(f"Ocurrió un error procesando los archivos principales: {str(e)}")
+                        st.code(traceback.format_exc(), language="python")
                         
     st.markdown("---")
     st.header("🔄 Re-generar TXT desde Excel Editado")

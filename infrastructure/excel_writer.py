@@ -3,6 +3,7 @@ from typing import List
 from domain.interfaces import IRetencionWriter
 from domain.models import RetencionSicore
 import dataclasses
+import inspect
 
 class PandasExcelWriter(IRetencionWriter):
     """

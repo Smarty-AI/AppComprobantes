@@ -49,8 +49,13 @@ class ExcelATxtUseCase:
                           # Si es float, redondeamos a 2 decs para asegurar que sea exacto como en el CSV
                           v_float = round(float(val), 2)
                           dict_row[k] = Decimal(f"{v_float:.2f}")
-                      except:
-                          dict_row[k] = Decimal(str(val))
+                      except Exception:
+                          try:
+                              # Intento con formato AR: "1.234,56" -> "1234.56"
+                              cleaned = str(val).strip().replace('.', '').replace(',', '.')
+                              dict_row[k] = Decimal(cleaned)
+                          except Exception:
+                              dict_row[k] = Decimal("0.00")
                  else:
                       dict_row[k] = Decimal("0.00")
                       
