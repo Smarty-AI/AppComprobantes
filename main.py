@@ -106,7 +106,7 @@ def main():
     with col1:
         st.subheader("📥 Carga de Archivos")
         uploaded_ddjj = st.file_uploader("1. Archivo DDJJ (Excel con hojas 'Datos' y 'Certif')", type=["xlsx", "xls"])
-        uploaded_csv = st.file_uploader("2. Mis Comprobantes AFIP (CSV o ZIP)", type=["csv", "zip"], accept_multiple_files=True)
+        uploaded_csv = st.file_uploader("2. Mis Comprobantes AFIP — Recibidos (CSV o ZIP)", type=["csv", "zip"], accept_multiple_files=True)
     
     with col2:
         st.subheader("⚙️ Opciones y Procesamiento")
