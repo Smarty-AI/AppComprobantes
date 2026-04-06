@@ -9,7 +9,7 @@ class SicoreTxtWriter(IRetencionWriter):
     Utiliza el SicoreLayout para procesar el formato de cada línea.
     """
     def write(self, retenciones: List[RetencionSicore], dest_path: str) -> None:
-        with open(dest_path, 'w', encoding='utf-8') as f:
+        with open(dest_path, 'w', encoding='utf-8', newline='\r\n') as f:
             for i, ret in enumerate(retenciones):
                 if not ret.is_matched:
                     continue
